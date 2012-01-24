@@ -1,0 +1,23 @@
+{
+	"name": "amqp-watcher",
+	"preferGlobal": "true",
+	"version": "0.0.1",
+	"author": "Phillip <pneumann@gmail.com>",
+	"description": "An utility that let you bind to an amqp exchange and see whats comming in",
+	"bin": {
+		"amqp-watcher": "./bin/amqp-watcher"
+	},
+	"main": "./bin/amqp-watcher",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/killfill/amqp-watcher.git"
+	},
+	"keywords": [
+		"cli", "amqp", "rabbitmq", "log", "see", "watcher"
+	],
+	"dependencies": {
+		"amqp": "*",
+		"commander": "*"
+	},
+	"license": "MIT"
+}
