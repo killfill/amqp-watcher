@@ -1,7 +1,9 @@
 # Amqp Watcher
 
   A simple watcher, that connects to an amqp server, binds an exchange to a queue, and outputs the activity.
+  
   It can also send strings to the exchange.
+  
 
 ## Installation
 
@@ -24,13 +26,16 @@ Options:
 ## Examples
 
 Bind to myExchange, all messages:
-  ./bin/amqp-watcher -s sofsis.cl -e myExchange
+
+	$ amqp-watcher -s myhost -e myExchange
 
 Bind to myExchange, ad listen to messages comming with routing key 'this.route':
-  ./bin/amqp-watcher -s sofsis.cl -e myExchange -k 'this.route'
+
+	$ amqp-watcher -s myhost -e myExchange -k 'this.route'
 
 Send 10 'hello world' to myExchange:
-  ./bin/amqp-watcher -s sofsis.cl -e myExchange -b 'hello world' -c 10
+
+	$ amqp-watcher -s myhost -e myExchange -b 'hello world' -c 10
 
 
 ## License 
