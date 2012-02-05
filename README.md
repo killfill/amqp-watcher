@@ -1,17 +1,37 @@
 # Amqp Watcher
 
-  A simple watcher, that connects to an amqp server, attaches to a queue, and print the activity to the console.
+  A simple watcher, that connects to an amqp server, binds an exchange to a queue, and outputs the activity.
+  It can also send strings to the exchange.
 
 ## Installation
 
-	$ npm install amqp-watcher
+	$ npm install amqp-watcher -g
 
 ## Options
 ```
-adsadsadssadsd
+Options:
+
+  -h, --help                          output usage information
+  -V, --version                       output the version number
+  -s, --server <servername>           Hostname of the server [localhost]
+  -u, --url <url>                     Url to connect to. For example amqp://user:pass@localhost:port/vhost]
+  -e, --exchange <name:type:durable>  Exchange type to bind to [amq.topic:topic:true]
+  -b, --body <text>                   Send a message with the specified body. Will quit after
+  -k, --key [routing key]             Set the value of the routing key [#]
+  -c, --count <n>                     Repeat the msg n times [1]
 ```
 
 ## Examples
+
+Bind to myExchange, all messages:
+  ./bin/amqp-watcher -s sofsis.cl -e myExchange
+
+Bind to myExchange, ad listen to messages comming with routing key 'this.route':
+  ./bin/amqp-watcher -s sofsis.cl -e myExchange -k 'this.route'
+
+Send 10 'hello world' to myExchange:
+  ./bin/amqp-watcher -s sofsis.cl -e myExchange -b 'hello world' -c 10
+
 
 ## License 
 

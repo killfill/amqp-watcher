@@ -2,7 +2,8 @@
 
 var amqpWatcher = require('../lib'),
 	comm = require('commander'),
-	url = require('url');
+	url = require('url'),
+	util = require('util');
 
 function list(val) {
 	return val.split(':');
@@ -14,9 +15,9 @@ comm
 	.option('-u, --url <url>', 'Url to connect to. For example amqp://user:pass@localhost:port/vhost]', 'amqp://localhost')
 
 	.option('-e, --exchange <name:type:durable>', 'Exchange type to bind to [amq.topic:topic:true]', list)
-	.option('-b, --body <topic:text>', 'Send a message with the specified body. Will quit after', list)
+	.option('-b, --body <text>', 'Send a message with the specified body. Will quit after')
 	.option('-k, --key [routing key]', 'Set the value of the routing key [#]', '#')
-	.option('-r, --repeat <n>', 'Repeat the msg n times [1]', 1)
+	.option('-c, --count <n>', 'Repeat the msg n times [1]', 1)
 	.parse(process.argv);
 
 //Default values
@@ -32,26 +33,32 @@ comm.exchange = {
 }
 
 amqpWatcher.create(comm).connect(function(err, w) {
-	
-	if (err) return console.log(err);
+
+	if (err) throw new Error(err);
 
 	if (comm.body) {
-		for (var i=0; i<comm.repeat; i++)
+
+		console.log('Sending %d messages:', comm.count);
+		
+		w.exchange.on('open', function() { w.conn.end(); });
+
+		console.time('took');
+		
+		for (var i=0; i<comm.count; i++) {
 			w.exchange.publish(comm.key, comm.body);
-			
-		//TODO: exit after publishing!
+			util.print('.');
+		}
+		console.log();
+		console.timeEnd('took');
+		return;
 	}
 	
 	var qName = 'watcher-' + Math.random() * 999999;
 	var q = w.conn.queue(qName, {exclusive: true}, function() {
 		q.bind(w.exchange, comm.key);
+		console.log('Watching...');
 		q.subscribe(function(msg) {
-			console.log(msg)
+			util.log(msg.data);
 		})
 	})	
-})
-
-process.on('uncaughtException', function(err) {
-	console.log('uncaughtException', err.stack);
-	process.exit(2);
 });
