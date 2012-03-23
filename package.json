@@ -1,7 +1,7 @@
 {
 	"name": "amqp-watcher",
 	"preferGlobal": "true",
-	"version": "0.0.1",
+	"version": "0.0.2",
 	"author": "Phillip Neumann <pneumann@gmail.com>",
 	"description": "Let you watch whats comming into an amqp exchange and send data to it",
 	"homepage": "https://github.com/killfill/amqp-watcher",

@@ -1,41 +1,68 @@
 # Amqp Watcher
 
-  A simple watcher, that connects to an amqp server, binds an exchange to a queue, and outputs the activity.
-  
-  It can also send strings to the exchange.
+  A tool to get and send messages from an amqp server from the command line
   
 
 ## Installation
 
 	$ npm install amqp-watcher -g
 
-## Options
+## Usage
 ```
-Options:
+Usage: amqp-watcher [options] [command]
 
-  -h, --help                          output usage information
-  -V, --version                       output the version number
-  -s, --server <servername>           Hostname of the server [localhost]
-  -u, --url <url>                     Url to connect to. For example amqp://user:pass@localhost:port/vhost]
-  -e, --exchange <name:type:durable>  Exchange type to bind to [amq.topic:topic:true]
-  -b, --body <text>                   Send a message with the specified body. Will quit after
-  -k, --key [routing key]             Set the value of the routing key [#]
-  -c, --count <n>                     Repeat the msg n times [1]
+  Commands:
+
+    get 
+    Get messages from the given exchange or if specified directly from a queue.
+    
+    send 
+    Send messages to the exchange
+
+  Options:
+
+    -h, --help                 output usage information
+    -V, --version              output the version number
+    -s, --server <servername>  Hostname of the server [localhost]
+    -u, --url <url>            Url to connect to. For example amqp://user:pass@localhost:port/vhost]
+    -e, --exchange <name>      Exchange name to bind to [amq.topic]
+    -t, --type <type>          Exchange type
+    -q, --queue <queuename>    Queue name [watcher-randomnr]
+    -d, --durable <bool>       Is the exchange or queue durable? [true]
+    -k, --key [routing key]    Set the value of the routing key [#]
+    -o, --output <file>        Output messages to [stdout]
+    -i, --input <file>         Read messages from
+    -b, --body <text>          Body of the message to send.
+    ,--text <bool>             Assume the content in the body is text [true]
+    -c, --count <n>            Send or get n messages
 ```
 
 ## Examples
 
-Bind to myExchange, all messages:
+Get all mesages from exchange
 
-	$ amqp-watcher -s myhost -e myExchange
+	$ amqp-watcher get -s myhost -e exchange
 
-Bind to myExchange, ad listen to messages comming with routing key 'this.route':
+Get messages exchange, that match the routing key 'this.route':
 
-	$ amqp-watcher -s myhost -e myExchange -k 'this.route'
+	$ amqp-watcher get -s myhost -e exchange -k 'this.route'
 
-Send 10 'hello world' to myExchange:
+Send 10 'hello world' to exchange:
 
-	$ amqp-watcher -s myhost -e myExchange -b 'hello world' -c 10
+	$ amqp-watcher send -s myhost -e exchange -b 'hello world' -c 10
+
+Get the first message from queue
+
+  $ amqp-watcher get -s myhost -q queue -c 1
+
+Send the content of file.txt to exchange, line by line
+
+  $ amqp-watcher send -s myhost -e exchange -i file.txt
+
+Get all messages from host1 comming to queue and send it to host2 to exchange
+
+  $ amqp-watcher get -s host1 -q queue | amqp-watcher send -s host2 -e exchange
+
 
 
 ## License 
