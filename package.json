@@ -3,7 +3,7 @@
 	"preferGlobal": "true",
 	"version": "0.0.2",
 	"author": "Phillip Neumann <pneumann@gmail.com>",
-	"description": "Let you watch whats comming into an amqp exchange and send data to it",
+	"description": "A tool to get and send messages from an amqp server from the command line",
 	"homepage": "https://github.com/killfill/amqp-watcher",
 	"bin": {
 		"amqp-watcher": "./bin/amqp-watcher"
