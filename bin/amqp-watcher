@@ -3,7 +3,9 @@
 var amqpWatcher = require('../lib'),
 	comm = require('commander'),
 	url = require('url'),
-	util = require('util');
+	util = require('util'),
+	carrier = require('carrier'),
+	fs = require('fs');
 
 function list(val) {
 	return val.split(':');
@@ -14,51 +16,147 @@ comm
 	.option('-s, --server <servername>', 'Hostname of the server [localhost]', 'localhost')
 	.option('-u, --url <url>', 'Url to connect to. For example amqp://user:pass@localhost:port/vhost]', 'amqp://localhost')
 
-	.option('-e, --exchange <name:type:durable>', 'Exchange type to bind to [amq.topic:topic:true]', list)
-	.option('-b, --body <text>', 'Send a message with the specified body. Will quit after')
+	.option('-e, --exchange <name>', 'Exchange name to bind to [amq.topic]')
+	.option('-t, --type <type>', 'Exchange type', 'topic')
+	
+	.option('-q, --queue <queuename>', 'Queue name [watcher-randomnr]')
+
+	.option('-d, --durable <bool>', 'Is the exchange or queue durable? [true]', 'true')
 	.option('-k, --key [routing key]', 'Set the value of the routing key [#]', '#')
-	.option('-c, --count <n>', 'Repeat the msg n times [1]', 1)
-	.parse(process.argv);
+
+	.option('-o, --output <file>', 'Output messages to [stdout]', false)
+	.option('-i, --input <file>', 'Read messages from', false)
+
+	.option('-b, --body <text>', 'Body of the message to send.')
+	.option(',--text <bool>', 'Assume the content in the body is text [true]', true)
+	.option('-c, --count <n>', 'Send or get n messages', false)
+	
+comm
+	.command('get')
+	.description('Get messages from the given exchange or if specified directly from a queue.')
+	.action(function(cmd) {
+		comm.getAction = true
+	});
+
+comm
+	.command('send')
+	.description('Send messages to the exchange')
+	.action(function(cmd) {
+		comm.sendAction = true
+	});
+
+comm.parse(process.argv);
+
+if (!comm.sendAction && !comm.getAction) {
+	console.log(comm.helpInformation());
+	process.exit();
+}
 
 //Default values
 comm.listen = comm.listen && '#';
-comm.exchange = comm.exchange || [];
-comm.durable = comm.exchange[2] == 'true';
+comm.durable = comm.durable == 'true';
 comm.url = url.parse(comm.url.replace('localhost', comm.server));
+if (!comm.queue)
+	comm.queue = 'watcher-' + Math.random() * 999999;
+else
+	comm.queueOptions = {durable: true, autoDelete: false}
 
 //Exchange options
 comm.exchange = {
-	name: comm.exchange[0],
-	options: {type: comm.exchange[1], durable: comm.durable}
+	name: comm.exchange,
+	options: {type: comm.type, durable: comm.durable}
 }
 
-amqpWatcher.create(comm).connect(function(err, w) {
+amqpWatcher.create(comm).connect(function(err, watcher) {
 
-	if (err) throw new Error(err);
+	if (err) {
+		console.log(comm.helpInformation());
+		console.log("=> There was an error for ", comm.url.href);
+		throw err;
+	}
 
-	if (comm.body) {
+	if (comm.sendAction) {
 
-		console.log('Sending %d messages:', comm.count);
-		
-		w.exchange.on('open', function() { w.conn.end(); });
+		if (comm.body) {
 
-		console.time('took');
-		
-		for (var i=0; i<comm.count; i++) {
-			w.exchange.publish(comm.key, comm.body);
-			util.print('.');
+			console.log('Sending %d messages:', comm.count);
+			console.time('took');
+			
+			for (var i=0; i<(comm.count||1); i++) {
+				watcher.exchange.publish(comm.key, comm.body, function() {
+					console.log('lo envie!!');
+				});
+				util.print('.');
+			}
+			console.log();
+			console.timeEnd('took');
+			
+			//hack: how do i close the connection, after all messages has been sent?
+			watcher.exchange.on('open', function() { watcher.conn.end(); });
+
 		}
-		console.log();
-		console.timeEnd('took');
-		return;
+		else {
+
+			console.log('Sending messages from stream');
+			console.time('took');
+
+			var isStdin = comm.input === false;
+			var input = !isStdin && fs.createReadStream(comm.input) || process.stdin;
+			input.setEncoding('utf8');
+
+			if (isStdin) input.resume();
+
+			carrier.carry(input, function(line) {
+
+				if (line=='Watching...') return;
+
+				var data = line || ' ';
+				var key = comm.key;
+				try {
+					var json = JSON.parse(line);
+					key = json.deliveryInfo.routingKey || '#';
+					data = json.message || ' ';	
+				} catch (ex) {}
+
+				watcher.exchange.publish(key, data);
+			})
+
+			input.on('end', function () {
+				//same hack :S
+				if (isStdin)
+					watcher.conn.end();
+				else 
+					watcher.exchange.on('open', function() { watcher.conn.end(); });
+
+				console.timeEnd('took');
+			});
+
+		}
 	}
 	
-	var qName = 'watcher-' + Math.random() * 999999;
-	var q = w.conn.queue(qName, {exclusive: true}, function() {
-		q.bind(w.exchange, comm.key);
-		console.log('Watching...');
-		q.subscribe(function(msg) {
-			util.log(msg.data);
-		})
-	})	
+
+	if (comm.getAction) {
+
+		var output = comm.output && fs.createWriteStream(comm.output) || process.stdout;
+
+		var q = watcher.conn.queue(comm.queue, comm.queueOptions || {exclusive: true}, function() {
+
+			//Bind the queue only if its autogenerated, if not let bindings to the user
+			!comm.queueOptions && q.bind(watcher.exchange, comm.key);
+
+			console.log('Watching...');
+			var count = 0;
+
+			q.subscribe(function(msg, headers, deliveryInfo) {
+				//msg = {data, contentType}
+				if (comm.text) msg.data = msg.data.toString();
+				output.write(JSON.stringify({message: msg, headers: headers, deliveryInfo: deliveryInfo}) + "\n");
+				count += 1;
+				if (comm.count && count>=comm.count)
+					watcher.conn.end();
+			});
+
+		});
+
+	}
 });

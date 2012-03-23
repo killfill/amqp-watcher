@@ -18,7 +18,8 @@
 	],
 	"dependencies": {
 		"amqp": "*",
-		"commander": "*"
+		"commander": "*",
+		"carrier": "*"
 	},
 	"license": "MIT"
 }
