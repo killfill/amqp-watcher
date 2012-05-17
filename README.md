@@ -53,15 +53,15 @@ Send 10 'hello world' to exchange:
 
 Get the first message from queue
 
-  $ amqp-watcher get -s myhost -q queue -c 1
+	$ amqp-watcher get -s myhost -q queue -c 1
 
 Send the content of file.txt to exchange, line by line
 
-  $ amqp-watcher send -s myhost -e exchange -i file.txt
+	$ amqp-watcher send -s myhost -e exchange -i file.txt
 
 Get all messages from host1 comming to queue and send it to host2 to exchange
 
-  $ amqp-watcher get -s host1 -q queue | amqp-watcher send -s host2 -e exchange
+	$ amqp-watcher get -s host1 -q queue | amqp-watcher send -s host2 -e exchange
 
 
 
