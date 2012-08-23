@@ -1,3 +1,4 @@
+[![build status](https://secure.travis-ci.org/killfill/amqp-watcher.png)](http://travis-ci.org/killfill/amqp-watcher)
 # Amqp Watcher
 
   A tool to get and send messages from an amqp server from the command line
